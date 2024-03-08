@@ -1,28 +1,34 @@
 //! 具有不连续存储结构的张量类型。
 
 mod logical;
+mod strides;
 
 use logical::Logical;
-use std::{collections::HashMap, ops::RangeInclusive};
+use strides::Strides;
 
 /// 具有不连续存储结构的张量类型。
 #[derive(Clone, Debug)]
 pub struct Tensor<Physical> {
     logical: Logical,
-    physical: HashMap<Physical, Ranges>,
-    layouts: HashMap<Strides, Ranges>,
+    strides: Strides,
+    physical: Physical,
 }
 
-/// 增广一个偏移维度的坐标跳步。
-///
-/// 表示一个张量分块中，使用坐标计算数据位置的方式。
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
-#[repr(transparent)]
-struct Strides(Vec<isize>);
+impl<Physical> Tensor<Physical> {
+    pub fn new(shape: &[usize], unit: usize, physical: Physical) -> Self {
+        Self {
+            logical: Logical::new(shape),
+            strides: Strides::new(shape, unit),
+            physical,
+        }
+    }
+}
 
-/// 分块坐标判据。
-///
-/// 根据分块坐标计算是否命中物理空间或坐标跳步。
-#[derive(Clone, Debug)]
-#[repr(transparent)]
-struct Ranges(Vec<RangeInclusive<usize>>);
+#[test]
+fn test() {
+    let frame = Tensor::new(&[20, 30, 40], 2, ());
+    assert_eq!(frame.logical.shape_vec(), &[20, 30, 40]);
+    assert_eq!(frame.logical.tile(0).unwrap().shape_vec(), &[20]);
+    assert_eq!(frame.logical.tile(1).unwrap().shape_vec(), &[30]);
+    assert_eq!(frame.logical.tile(2).unwrap().shape_vec(), &[40]);
+}
