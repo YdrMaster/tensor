@@ -28,15 +28,16 @@
 /// 例如，一个形状为 `[20, 30, 40]` 的张量，
 /// 将长度为 30 的维度平均分为 3 块，
 /// 长度为 40 的维度平均分为 2 块，
-/// 则保存为：`[3, [0, 1, 3], [[20], [30, 10], [40, 20]]]`。
+/// 则保存为：`[3, [0, 1, 3, 5], [[20], [30, 10], [40, 20]]]`。
 ///
 /// 其中，
 ///
 /// - `3` 是张量的维度数；
-/// - `[0, 1, 3]` 是每个维度的分块的维度数量的前序和；
+/// - `[0, 1, 3, 5]` 是每个维度的分块的维度数量的前序和；
 ///   - `0` 表示第 0 维（长度为 20）的分块信息位于 `[[dim tile shape]]` 的位置 0；
 ///   - `1` 表示第 1 维（长度为 30）的分块信息位于 `[[dim tile shape]]` 的位置 1，因为第 0 维没有分块，只需要一个数字存储长度；
 ///   - `3` 表示第 2 维（长度为 40）的分块信息位于 `[[dim tile shape]]` 的位置 3，因为第 1 维平均切分一次，需要两个数字存储后序积；
+///   - `5` 表示分块信息结束于 `[[dim tile shape]]` 的位置 5，因为第 2 维平均切分一次，需要两个数字存储后序积；
 /// - `[[20], [30, 10], [40, 20]]` 是每个维度的分块的形状；
 ///   - `[[20]]` 表示第 0 维长度为 20，没有分块；
 ///   - `[[30, 10]]` 表示第 1 维长度为 30，分为 3 块，每块长度为 10；
@@ -94,40 +95,64 @@ impl Logical {
     }
 
     #[inline]
-    pub fn partition(&mut self, i: usize, shape: &[usize]) {
-        let mut strides = shape
-            .iter()
-            .rev()
-            .scan(1, |mul, &d| {
-                *mul *= d;
-                Some(*mul)
-            })
-            .collect::<Vec<_>>();
-        strides.reverse();
+    pub fn transpose(&self, perm: &[usize]) -> Self {
+        let (rank, pos, tiles) = self.split();
+        assert_eq!(rank, perm.len());
 
+        let mut ans = Self(vec![0; self.0.len()]);
+        ans.0[0] = rank;
+        let (_, pos_, tiles_) = ans.split_mut();
+        for (i, &j) in perm.iter().enumerate() {
+            let tiles = &tiles[pos[j]..pos[j + 1]];
+            pos_[i + 1] = pos_[i] + tiles.len();
+            tiles_[pos_[i]..pos_[i + 1]].copy_from_slice(tiles);
+        }
+        ans
+    }
+
+    #[inline]
+    pub fn partition(&self, axis: usize, shape: &[usize]) -> Self {
+        let (rank, pos, tiles) = self.split();
+
+        assert!(!shape.is_empty());
+        assert!(axis < rank);
+
+        let mut ans = Self(vec![
+            0;
+            self.0.len() + shape.len() - (pos[axis + 1] - pos[axis])
+        ]);
+        ans.0[0] = rank;
+
+        let (_, pos_, tiles_) = ans.split_mut();
+        for i in 0..rank {
+            if i != axis {
+                let tile = &tiles[pos[i]..pos[i + 1]];
+                pos_[i + 1] = pos_[i] + tile.len();
+                tiles_[pos_[i]..pos_[i + 1]].copy_from_slice(tile);
+            } else {
+                pos_[i + 1] = pos_[i] + shape.len();
+                let mut mul = 1;
+                for (s, &d) in tiles_[pos_[i]..].iter_mut().zip(shape).rev() {
+                    mul *= d;
+                    *s = mul;
+                }
+                assert_eq!(tiles[pos[i]], tiles_[pos_[i]]);
+            }
+        }
+
+        ans
+    }
+
+    fn split(&self) -> (usize, &[usize], &[usize]) {
+        let (&rank, body) = self.0.split_first().unwrap();
+        let (pos, tiles) = body.split_at(1 + rank);
+        (rank, pos, tiles)
+    }
+
+    fn split_mut(&mut self) -> (usize, &mut [usize], &mut [usize]) {
         let (&mut rank, body) = self.0.split_first_mut().unwrap();
         let (pos, tiles) = body.split_at_mut(1 + rank);
-        assert_eq!(tiles[pos[i]], strides[0]);
-
-        let current_len = pos[i + 1] - pos[i];
-        let new_len = strides.len();
-        let diff = new_len as isize - current_len as isize;
-        if diff < 0 {
-            tiles.copy_within(pos[i + 1].., pos[i] + new_len);
-            self.0.truncate(self.0.len() - (-diff as usize));
-        } else if 0 < diff {
-            self.0.resize(self.0.len() + diff as usize, 0);
-            let (_, body) = self.0.split_first_mut().unwrap();
-            let (pos, tiles) = body.split_at_mut(1 + rank);
-            tiles.copy_within(pos[i + 1]..pos[rank], pos[i] + new_len);
-        }
-
-        let (_, body) = self.0.split_first_mut().unwrap();
-        let (pos, tiles) = body.split_at_mut(1 + rank);
-        tiles[pos[i]..][..strides.len()].copy_from_slice(&strides);
-        for x in &mut pos[i + 1..] {
-            *x = (*x as isize + diff) as usize;
-        }
+        (rank, pos, tiles)
     }
 }
 
@@ -167,9 +192,9 @@ impl Tile<'_> {
 
 #[test]
 fn test() {
-    let mut logical = Logical::new(&[20, 30, 40]);
+    let logical = Logical::new(&[20, 30, 40]);
 
-    assert_eq!(logical.0, &[3, 0, 1, 2, 3, 20, 30, 40]);
+    assert_eq!(logical.0, &[3, /**/ 0, 1, 2, 3, /**/ 20, /**/ 30, /**/ 40]);
     assert_eq!(logical.rank(), 3);
     assert_eq!(logical.shape(0), Some(20));
     assert_eq!(logical.shape(1), Some(30));
@@ -180,8 +205,11 @@ fn test() {
     assert_eq!(logical.tile(2).map(|t| t.0), Some(&[40][..]));
     assert_eq!(logical.tile(3).map(|t| t.0), None);
 
-    logical.partition(1, &[3, 10]);
-    assert_eq!(logical.0, &[3, 0, 1, 3, 4, 20, 30, 10, 40]);
+    let logical = logical.partition(1, &[3, 10]);
+    assert_eq!(
+        logical.0,
+        &[3, /**/ 0, 1, 3, 4, /**/ 20, /**/ 30, 10, /**/ 40]
+    );
     assert_eq!(logical.shape(0), Some(20));
     assert_eq!(logical.shape(1), Some(30));
     assert_eq!(logical.shape(2), Some(40));
@@ -191,8 +219,11 @@ fn test() {
     assert_eq!(logical.tile(2).map(|t| t.0), Some(&[40][..]));
     assert_eq!(logical.tile(3).map(|t| t.0), None);
 
-    logical.partition(2, &[2, 20]);
-    assert_eq!(logical.0, &[3, 0, 1, 3, 5, 20, 30, 10, 40, 20]);
+    let logical = logical.partition(2, &[2, 20]);
+    assert_eq!(
+        logical.0,
+        &[3, /**/ 0, 1, 3, 5, /**/ 20, /**/ 30, 10, /**/ 40, 20]
+    );
     assert_eq!(logical.shape(0), Some(20));
     assert_eq!(logical.shape(1), Some(30));
     assert_eq!(logical.shape(2), Some(40));
@@ -202,8 +233,11 @@ fn test() {
     assert_eq!(logical.tile(2).map(|t| t.0), Some(&[40, 20][..]));
     assert_eq!(logical.tile(3).map(|t| t.0), None);
 
-    logical.partition(1, &[5, 6]);
-    assert_eq!(logical.0, &[3, 0, 1, 3, 5, 20, 30, 6, 40, 20]);
+    let logical = logical.partition(1, &[5, 6]);
+    assert_eq!(
+        logical.0,
+        &[3, /**/ 0, 1, 3, 5, /**/ 20, /**/ 30, 6, /**/ 40, 20]
+    );
     assert_eq!(logical.shape(0), Some(20));
     assert_eq!(logical.shape(1), Some(30));
     assert_eq!(logical.shape(2), Some(40));
@@ -213,12 +247,21 @@ fn test() {
     assert_eq!(logical.tile(2).map(|t| t.0), Some(&[40, 20][..]));
     assert_eq!(logical.tile(3).map(|t| t.0), None);
 
-    logical.partition(1, &[2, 3, 5]);
-    assert_eq!(logical.0, &[3, 0, 1, 4, 6, 20, 30, 15, 5, 40, 20]);
+    let logical = logical.partition(1, &[2, 3, 5]);
+    assert_eq!(
+        logical.0,
+        &[3, /**/ 0, 1, 4, 6, /**/ 20, /**/ 30, 15, 5, /**/ 40, 20]
+    );
     let tile = logical.tile(1).unwrap();
     assert_eq!(tile.rank(), 3);
     assert_eq!(tile.shape(0), Some(2));
     assert_eq!(tile.shape(1), Some(3));
     assert_eq!(tile.shape(2), Some(5));
     assert_eq!(tile.shape(3), None);
+
+    let logical = logical.transpose(&[2, 0, 1]);
+    assert_eq!(
+        logical.0,
+        &[3, /**/ 0, 2, 3, 6, /**/ 40, 20, /**/ 20, /**/ 30, 15, 5]
+    );
 }
