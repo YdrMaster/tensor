@@ -1,41 +1,59 @@
 ﻿use crate::Tensor;
 
-pub trait Splitable {
-    fn split(&self) -> Self;
-}
-
-impl<T: Clone> Splitable for T {
-    #[inline]
-    fn split(&self) -> Self {
-        self.clone()
-    }
-}
-
 impl<Storage> Tensor<Storage> {
-    /// 块再切分。
+    /// 块再切分变换。
+    ///
+    /// 将第 `axis` 维度的块依 `tiles` 指定的方式切分。
     #[inline]
     pub fn tile_split(mut self, axis: usize, tiles: &[usize]) -> Self {
-        // 增广形状不可分
-        assert!(axis < self.tiles.len() - 1);
-        // 分块数不匹配
-        assert_eq!(tiles.iter().product::<usize>(), self.tiles[axis] as _);
-
+        match tiles {
+            [] => panic!(),
+            [d] => {
+                assert_eq!(*d, self.tiles[axis] as _);
+                return self;
+            }
+            _ => {
+                // 增广形状不可分
+                assert!(axis < self.tiles.len() - 1);
+                // 分块数不匹配
+                assert_eq!(tiles.iter().product::<usize>(), self.tiles[axis] as _);
+            }
+        }
+        // 增加的维度数量
+        let insert = tiles.len() - 1;
+        // 找到 axis 块对应的形状维度
         let i = self
             .shape_groups
             .iter()
-            .scan(0, |acc, &len| {
-                *acc += len;
-                Some(*acc)
+            .scan(axis, |rest, &len| {
+                rest.checked_sub(len).map(|val| *rest = val)
             })
-            .take_while(|&acc| acc < axis)
             .count();
-        self.shape_groups[i] += tiles.len() - 1;
-
+        self.shape_groups[i] += insert;
+        // 插入分块
         let tail = self.tiles.split_off(axis);
         self.tiles.extend(tiles.iter().map(|&t| t as isize));
         self.tiles.extend_from_slice(&tail[1..]);
-
-        todo!("split pattern and storage");
+        // 模式的维度数
+        let rank = self.pattern.rank();
+        // 模式的条目数
+        let num_pattern = self.pattern.value.len() / rank;
+        // 更新模式元张量和存储元张量的形状
+        self.pattern = self.pattern.shape_split(axis, tiles);
+        self.storage = self.storage.shape_split(axis, tiles);
+        // 模式随着块切分
+        let pattern = &mut self.pattern.value;
+        pattern.reserve(num_pattern * insert);
+        unsafe { pattern.set_len(num_pattern * (rank + insert)) };
+        for i in (0..num_pattern).rev() {
+            let src = i * rank;
+            let dst = src + i * insert;
+            pattern.copy_within(src..src + axis, dst);
+            pattern.copy_within(src + axis..src + rank, dst + axis + insert);
+            for i in (dst + axis..dst + axis + insert).rev() {
+                pattern[i] = pattern[i + 1] * self.tiles[i + 1];
+            }
+        }
 
         self
     }
@@ -52,11 +70,11 @@ fn test() {
     assert_eq!(tensor.storage.value.len(), 1);
     assert_eq!(tensor.size(), 60);
 
-    let tensor = tensor.tile_split(0, &[2, 3]);
+    let tensor = tensor.tile_split(1, &[2, 5]);
     assert_eq!(tensor.shape(), &[6, 10]);
-    assert_eq!(tensor.tiles(), &[2, 3, 10, 1]);
+    assert_eq!(tensor.tiles(), &[6, 2, 5, 1]);
     assert_eq!(tensor.pattern.shape, &[1, 1, 1, 1]);
-    assert_eq!(tensor.pattern.value, &[30, 10, 1, 0]);
+    assert_eq!(tensor.pattern.value, &[10, 5, 1, 0]);
     assert_eq!(tensor.storage.shape, &[1, 1, 1, 1]);
     assert_eq!(tensor.storage.value.len(), 1);
     assert_eq!(tensor.size(), 60);

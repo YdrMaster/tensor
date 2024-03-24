@@ -1,12 +1,11 @@
 //! 具有不连续存储结构的张量类型。
 
+mod meta;
 mod restructure;
 mod split;
 mod transpose;
 
 use std::iter::once;
-
-pub use split::Splitable;
 
 /// 支持分块、不连续存储结构的张量类型。
 ///
