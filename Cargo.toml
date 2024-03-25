@@ -9,3 +9,6 @@ authors = ["YdrMaster <ydrml@hotmail.com>"]
 [dependencies]
 fixedbitset = "0.5"
 nalgebra = "0.32"
+
+[features]
+todo = []

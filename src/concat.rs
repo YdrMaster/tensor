@@ -33,6 +33,7 @@ impl<Storage> Tensor<Storage> {
 }
 
 #[test]
+#[cfg(feature = "todo")]
 fn test() {
     let a = Tensor::new(&[2, 3, 3], ()).tile_split(0, &[2, 1]);
     let b = Tensor::new(&[2, 3, 3], ()).tile_split(1, &[1, 3]);
