@@ -3,7 +3,6 @@ use std::iter::once;
 
 impl<Storage> Tensor<Storage> {
     /// 张量拼接。
-    #[inline]
     pub fn concat(axis: usize, inputs: Vec<Self>) -> Self {
         assert!(!inputs.is_empty());
         let head = &inputs[0].tiles[..axis];

@@ -4,7 +4,6 @@ impl<Storage> Tensor<Storage> {
     /// 块再切分变换。
     ///
     /// 将第 `axis` 维度的块依 `tiles` 指定的方式切分。
-    #[inline]
     pub fn tile_split(mut self, axis: usize, tiles: &[usize]) -> Self {
         match tiles {
             [] => panic!(),
