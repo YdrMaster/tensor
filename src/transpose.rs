@@ -31,8 +31,8 @@ impl<Storage> Tensor<Storage> {
         // 变换块形状。
         self.tiles.0 = &affine * self.tiles.0;
         // 变换元信息张量形状。
-        self.pattern.shape.0 = &affine * self.pattern.shape.0;
-        self.storage.shape.0 = &affine * self.storage.shape.0;
+        self.pattern.shape = self.pattern.shape.transpose(&btree);
+        self.storage.shape = self.storage.shape.transpose(&btree);
         // 变换访存模式。
         let pattern = DMatrixView::from_slice(&self.pattern.value, n, self.pattern.value.len() / n);
         self.pattern.value = (affine * pattern).data.into();
@@ -46,18 +46,18 @@ fn test() {
     let tensor = Tensor::new(&[2, 3, 4, 5], ());
     assert_eq!(tensor.shape(), &[2, 3, 4, 5]);
     assert_eq!(tensor.tiles(), &[2, 3, 4, 5, 1]);
-    assert_eq!(&*tensor.pattern.shape, &[1, 1, 1, 1, 1]);
+    assert_eq!(tensor.pattern.shape.to_string(), "00000");
     assert_eq!(tensor.pattern.value, &[60, 20, 5, 1, 0]);
-    assert_eq!(&*tensor.storage.shape, &[1, 1, 1, 1, 1]);
+    assert_eq!(tensor.storage.shape.to_string(), "00000");
     assert_eq!(tensor.storage.value.len(), 1);
     assert_eq!(tensor.size(), 120);
 
     let tensor = tensor.tile_transpose(&[3, 1, 2]);
     assert_eq!(tensor.shape(), &[2, 5, 3, 4]);
     assert_eq!(tensor.tiles(), &[2, 5, 3, 4, 1]);
-    assert_eq!(&*tensor.pattern.shape, &[1, 1, 1, 1, 1]);
+    assert_eq!(tensor.pattern.shape.to_string(), "00000");
     assert_eq!(tensor.pattern.value, &[60, 1, 20, 5, 0]);
-    assert_eq!(&*tensor.pattern.shape, &[1, 1, 1, 1, 1]);
+    assert_eq!(tensor.storage.shape.to_string(), "00000");
     assert_eq!(tensor.storage.value.len(), 1);
     assert_eq!(tensor.size(), 120);
 }

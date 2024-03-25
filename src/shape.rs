@@ -40,3 +40,10 @@ impl Shape {
         self
     }
 }
+
+#[test]
+fn test() {
+    let shape = Shape(DVector::from_vec(vec![2, 3, 4, 1]));
+    assert_eq!(&*shape.clone().split_dim(2, &[2, 2]), &[2, 3, 2, 2, 1]);
+    assert_eq!(&*shape.split_dim(3, &[2, 3, 4]), &[2, 3, 4, 1, 1, 1]);
+}

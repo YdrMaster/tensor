@@ -1,10 +1,12 @@
 //! 具有不连续存储结构的张量类型。
 
+mod meta_shape;
 mod restructure;
 mod shape;
 mod split;
 mod transpose;
 
+use meta_shape::MetaShape;
 use nalgebra::DVector;
 use shape::Shape;
 use std::iter::once;
@@ -36,7 +38,7 @@ pub struct Tensor<Storage> {
 #[derive(Clone, Debug)]
 struct MetaTensor<T> {
     /// 元信息张量的形状，广播到[张量](crate::Tensor)的分块。
-    shape: Shape,
+    shape: MetaShape,
     /// [张量](crate::Tensor)元信息数据。
     value: Vec<T>,
 }
@@ -54,7 +56,7 @@ impl<S> Tensor<S> {
                 shape.iter().map(|&d| d as _).chain(once(1)).collect(),
             )),
             pattern: MetaTensor {
-                shape: Shape(DVector::from_element(shape.len() + 1, 1)),
+                shape: MetaShape::new(shape.len() + 1),
                 value: {
                     let mut strides = once(0)
                         .chain(shape.iter().rev().scan(1, |acc, &d| {
@@ -68,7 +70,7 @@ impl<S> Tensor<S> {
                 },
             },
             storage: MetaTensor {
-                shape: Shape(DVector::from_element(shape.len() + 1, 1)),
+                shape: MetaShape::new(shape.len() + 1),
                 value: vec![storage],
             },
         }
@@ -104,18 +106,18 @@ fn test() {
     let tensor = Tensor::new(&[2, 3, 4], vec![0.0f32; 2 * 3 * 4]);
     assert_eq!(tensor.shape(), &[2, 3, 4]);
     assert_eq!(tensor.tiles(), &[2, 3, 4, 1]);
-    assert_eq!(&*tensor.pattern.shape, &[1, 1, 1, 1]);
+    assert_eq!(tensor.pattern.shape.to_string(), "0000");
     assert_eq!(tensor.pattern.value, &[12, 4, 1, 0]);
-    assert_eq!(&*tensor.storage.shape, &[1, 1, 1, 1]);
+    assert_eq!(tensor.storage.shape.to_string(), "0000");
     assert_eq!(tensor.storage.value.len(), 1);
     assert_eq!(tensor.size(), 24);
 
     let tensor = Tensor::new(&[], 0.0f32);
     assert_eq!(tensor.shape(), &[]);
     assert_eq!(tensor.tiles(), &[1]);
-    assert_eq!(&*tensor.pattern.shape, &[1]);
+    assert_eq!(tensor.pattern.shape.to_string(), "0");
     assert_eq!(tensor.pattern.value, &[0]);
-    assert_eq!(&*tensor.storage.shape, &[1]);
+    assert_eq!(tensor.storage.shape.to_string(), "0");
     assert_eq!(tensor.storage.value.len(), 1);
     assert_eq!(tensor.size(), 1);
 }
