@@ -31,16 +31,14 @@ impl<Storage> Tensor<Storage> {
             .count();
         self.shape_groups[i] += insert;
         // 插入分块
-        let tail = self.tiles.split_off(axis);
-        self.tiles.extend(tiles.iter().map(|&t| t as isize));
-        self.tiles.extend_from_slice(&tail[1..]);
+        self.tiles = self.tiles.split_dim(axis, tiles);
         // 模式的维度数
-        let rank = self.pattern.rank();
+        let rank = self.pattern.shape.len();
         // 模式的条目数
         let num_pattern = self.pattern.value.len() / rank;
         // 更新模式元张量和存储元张量的形状
-        self.pattern = self.pattern.shape_split(axis, tiles);
-        self.storage = self.storage.shape_split(axis, tiles);
+        self.pattern.shape = self.pattern.shape.split_dim(axis, tiles);
+        self.storage.shape = self.storage.shape.split_dim(axis, tiles);
         // 模式随着块切分
         let pattern = &mut self.pattern.value;
         pattern.reserve(num_pattern * insert);
@@ -64,18 +62,18 @@ fn test() {
     let tensor = Tensor::new(&[6, 10], ());
     assert_eq!(tensor.shape(), &[6, 10]);
     assert_eq!(tensor.tiles(), &[6, 10, 1]);
-    assert_eq!(tensor.pattern.shape, &[1, 1, 1]);
+    assert_eq!(&*tensor.pattern.shape, &[1, 1, 1]);
     assert_eq!(tensor.pattern.value, &[10, 1, 0]);
-    assert_eq!(tensor.storage.shape, &[1, 1, 1]);
+    assert_eq!(&*tensor.storage.shape, &[1, 1, 1]);
     assert_eq!(tensor.storage.value.len(), 1);
     assert_eq!(tensor.size(), 60);
 
     let tensor = tensor.tile_split(1, &[2, 5]);
     assert_eq!(tensor.shape(), &[6, 10]);
     assert_eq!(tensor.tiles(), &[6, 2, 5, 1]);
-    assert_eq!(tensor.pattern.shape, &[1, 1, 1, 1]);
+    assert_eq!(&*tensor.pattern.shape, &[1, 1, 1, 1]);
     assert_eq!(tensor.pattern.value, &[10, 5, 1, 0]);
-    assert_eq!(tensor.storage.shape, &[1, 1, 1, 1]);
+    assert_eq!(&*tensor.storage.shape, &[1, 1, 1, 1]);
     assert_eq!(tensor.storage.value.len(), 1);
     assert_eq!(tensor.size(), 60);
 }
