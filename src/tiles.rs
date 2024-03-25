@@ -35,7 +35,10 @@ impl Tiles {
     pub fn split(mut self, axis: usize, tiles: &[usize]) -> Self {
         let len = self.0.len();
         self.0.reserve(tiles.len() - 1);
-        unsafe { self.0.set_len(len + tiles.len() - 1) };
+        #[allow(clippy::uninit_vec)]
+        unsafe {
+            self.0.set_len(len + tiles.len() - 1)
+        };
         self.0.copy_within(axis + 1..len, axis + tiles.len());
         self.0[axis..axis + tiles.len()].copy_from_slice(tiles);
         self

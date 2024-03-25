@@ -109,7 +109,7 @@ impl<S> Tensor<S> {
     /// 获取张量逻辑分块结构。
     #[inline]
     pub fn tiles(&self) -> &[usize] {
-        &*self.tiles
+        &self.tiles
     }
 
     /// 获取张量中的元素个数。

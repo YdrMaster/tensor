@@ -41,7 +41,10 @@ impl<Storage> Tensor<Storage> {
         // 模式随着块切分
         let pattern = &mut self.pattern.value;
         pattern.reserve(ncols * insert);
-        unsafe { pattern.set_len(ncols * (nrows + insert)) };
+        #[allow(clippy::uninit_vec)]
+        unsafe {
+            pattern.set_len(ncols * (nrows + insert))
+        };
         for i in (0..ncols).rev() {
             let src = i * nrows;
             let dst = src + i * insert;
