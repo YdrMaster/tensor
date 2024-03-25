@@ -14,8 +14,8 @@ impl ToString for MetaShape {
 
 impl MetaShape {
     #[inline]
-    pub fn new<T>(shape: &[T]) -> Self {
-        Self(FixedBitSet::with_capacity(shape.len() + 1))
+    pub fn new(rank: usize) -> Self {
+        Self(FixedBitSet::with_capacity(rank + 1))
     }
 
     #[inline]
@@ -45,7 +45,7 @@ impl MetaShape {
 
 #[test]
 fn test_split() {
-    let mut shape = MetaShape::new(&[1, 2, 3, 4]);
+    let mut shape = MetaShape::new(4);
     shape.0.insert(2);
     shape.0.insert(3);
 
@@ -55,7 +55,7 @@ fn test_split() {
 
 #[test]
 fn test_transpose() {
-    let mut shape = MetaShape::new(&[1, 2, 3, 4]);
+    let mut shape = MetaShape::new(4);
     shape.0.insert(2);
     shape.0.insert(3);
 

@@ -33,21 +33,21 @@ impl<Storage> Tensor<Storage> {
         // 插入分块
         self.tiles = self.tiles.split(axis, tiles);
         // 模式的维度数
-        let rank = self.pattern.shape.len();
+        let nrows = self.pattern.nrows();
         // 模式的条目数
-        let num_pattern = self.pattern.value.len() / rank;
+        let ncols = self.pattern.ncols();
         // 更新模式元张量和存储元张量的形状
         self.pattern.shape = self.pattern.shape.split(axis, insert);
         self.storage.shape = self.storage.shape.split(axis, insert);
         // 模式随着块切分
         let pattern = &mut self.pattern.value;
-        pattern.reserve(num_pattern * insert);
-        unsafe { pattern.set_len(num_pattern * (rank + insert)) };
-        for i in (0..num_pattern).rev() {
-            let src = i * rank;
+        pattern.reserve(ncols * insert);
+        unsafe { pattern.set_len(ncols * (nrows + insert)) };
+        for i in (0..ncols).rev() {
+            let src = i * nrows;
             let dst = src + i * insert;
             pattern.copy_within(src..src + axis, dst);
-            pattern.copy_within(src + axis..src + rank, dst + axis + insert);
+            pattern.copy_within(src + axis..src + nrows, dst + axis + insert);
             for i in (dst + axis..dst + axis + insert).rev() {
                 pattern[i] = pattern[i + 1] * self.tiles[i + 1] as isize;
             }

@@ -1,5 +1,5 @@
 ﻿use crate::Tensor;
-use nalgebra::{DMatrix, DMatrixView};
+use nalgebra::DMatrix;
 use std::{collections::BTreeMap, iter::zip};
 
 impl<Storage> Tensor<Storage> {
@@ -34,8 +34,7 @@ impl<Storage> Tensor<Storage> {
                 0
             }
         });
-        let pattern = DMatrixView::from_slice(&self.pattern.value, n, self.pattern.value.len() / n);
-        self.pattern.value = (affine * pattern).data.into();
+        self.pattern.value = (affine * self.pattern.as_matrix()).data.into();
 
         self
     }

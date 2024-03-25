@@ -1,5 +1,6 @@
 //! 具有不连续存储结构的张量类型。
 
+mod concat;
 mod meta_shape;
 mod restructure;
 mod split;
@@ -7,6 +8,7 @@ mod tiles;
 mod transpose;
 
 use meta_shape::MetaShape;
+use nalgebra::{DMatrixView, Scalar};
 use std::iter::once;
 use tiles::Tiles;
 
@@ -42,6 +44,25 @@ struct MetaTensor<T> {
     value: Vec<T>,
 }
 
+impl<T> MetaTensor<T> {
+    #[inline]
+    pub fn nrows(&self) -> usize {
+        self.shape.len()
+    }
+
+    #[inline]
+    pub fn ncols(&self) -> usize {
+        self.value.len() / self.shape.len()
+    }
+}
+
+impl<T: Scalar> MetaTensor<T> {
+    #[inline]
+    pub fn as_matrix(&self) -> DMatrixView<T> {
+        DMatrixView::from_slice(&self.value, self.nrows(), self.ncols())
+    }
+}
+
 impl<S> Tensor<S> {
     /// 创建一个标准的张量。
     ///
@@ -53,7 +74,7 @@ impl<S> Tensor<S> {
             shape_groups: vec![1; shape.len()],
             tiles: Tiles::new(shape),
             pattern: MetaTensor {
-                shape: MetaShape::new(shape),
+                shape: MetaShape::new(shape.len()),
                 value: {
                     let mut strides = once(0)
                         .chain(shape.iter().rev().scan(1, |acc, &d| {
@@ -67,7 +88,7 @@ impl<S> Tensor<S> {
                 },
             },
             storage: MetaTensor {
-                shape: MetaShape::new(shape),
+                shape: MetaShape::new(shape.len()),
                 value: vec![storage],
             },
         }
