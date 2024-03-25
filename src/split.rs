@@ -31,7 +31,7 @@ impl<Storage> Tensor<Storage> {
             .count();
         self.shape_groups[i] += insert;
         // 插入分块
-        self.tiles = self.tiles.split_dim(axis, tiles);
+        self.tiles = self.tiles.split(axis, tiles);
         // 模式的维度数
         let rank = self.pattern.shape.len();
         // 模式的条目数
@@ -49,7 +49,7 @@ impl<Storage> Tensor<Storage> {
             pattern.copy_within(src..src + axis, dst);
             pattern.copy_within(src + axis..src + rank, dst + axis + insert);
             for i in (dst + axis..dst + axis + insert).rev() {
-                pattern[i] = pattern[i + 1] * self.tiles[i + 1];
+                pattern[i] = pattern[i + 1] * self.tiles[i + 1] as isize;
             }
         }
 

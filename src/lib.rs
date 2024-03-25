@@ -2,14 +2,13 @@
 
 mod meta_shape;
 mod restructure;
-mod shape;
 mod split;
+mod tiles;
 mod transpose;
 
 use meta_shape::MetaShape;
-use nalgebra::DVector;
-use shape::Shape;
 use std::iter::once;
+use tiles::Tiles;
 
 /// 支持分块、不连续存储结构的张量类型。
 ///
@@ -23,7 +22,7 @@ pub struct Tensor<Storage> {
     /// 按分块表示的张量形状。
     ///
     /// 为了对齐模式中的偏移项，增广一个维度，值固定为 1。
-    tiles: Shape,
+    tiles: Tiles,
     /// 每个元素的访问模式组成的[元信息张量](MetaTensor)。
     /// 这个设计方便用一次矩阵乘变换所有元素的访问模式。
     pattern: MetaTensor<isize>,
@@ -52,11 +51,9 @@ impl<S> Tensor<S> {
     pub fn new(shape: &[usize], storage: S) -> Self {
         Self {
             shape_groups: vec![1; shape.len()],
-            tiles: Shape(DVector::from_vec(
-                shape.iter().map(|&d| d as _).chain(once(1)).collect(),
-            )),
+            tiles: Tiles::new(shape),
             pattern: MetaTensor {
-                shape: MetaShape::new(shape.len() + 1),
+                shape: MetaShape::new(shape),
                 value: {
                     let mut strides = once(0)
                         .chain(shape.iter().rev().scan(1, |acc, &d| {
@@ -70,7 +67,7 @@ impl<S> Tensor<S> {
                 },
             },
             storage: MetaTensor {
-                shape: MetaShape::new(shape.len() + 1),
+                shape: MetaShape::new(shape),
                 value: vec![storage],
             },
         }
@@ -83,21 +80,21 @@ impl<S> Tensor<S> {
             .scan(&*self.tiles, |tiles, &len| {
                 let (head, tail) = tiles.split_at(len);
                 *tiles = tail;
-                Some(head.iter().product::<isize>() as _)
+                Some(head.iter().product())
             })
             .collect()
     }
 
     /// 获取张量逻辑分块结构。
     #[inline]
-    pub fn tiles(&self) -> &[isize] {
+    pub fn tiles(&self) -> &[usize] {
         &*self.tiles
     }
 
     /// 获取张量中的元素个数。
     #[inline]
     pub fn size(&self) -> usize {
-        self.tiles.iter().product::<isize>() as _
+        self.tiles.iter().product()
     }
 }
 

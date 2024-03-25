@@ -20,7 +20,13 @@ impl<Storage> Tensor<Storage> {
         if btree.iter().all(|(k, v)| k == v) {
             return self;
         }
-        // 构造仿射变换矩阵。
+
+        // 变换块形状。
+        self.tiles = self.tiles.transpose(&btree);
+        // 变换元信息张量形状。
+        self.pattern.shape = self.pattern.shape.transpose(&btree);
+        self.storage.shape = self.storage.shape.transpose(&btree);
+        // 变换访存模式。
         let affine = DMatrix::from_fn(n, n, |r, c| {
             if c == btree.get(&r).copied().unwrap_or(r) {
                 1
@@ -28,12 +34,6 @@ impl<Storage> Tensor<Storage> {
                 0
             }
         });
-        // 变换块形状。
-        self.tiles.0 = &affine * self.tiles.0;
-        // 变换元信息张量形状。
-        self.pattern.shape = self.pattern.shape.transpose(&btree);
-        self.storage.shape = self.storage.shape.transpose(&btree);
-        // 变换访存模式。
         let pattern = DMatrixView::from_slice(&self.pattern.value, n, self.pattern.value.len() / n);
         self.pattern.value = (affine * pattern).data.into();
 
