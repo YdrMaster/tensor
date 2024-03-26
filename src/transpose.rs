@@ -64,6 +64,7 @@ impl<Storage> Tensor<Storage> {
             }
         });
         self.pattern.value = (affine * self.pattern.as_matrix()).data.into();
+
         self
     }
 }

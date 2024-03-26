@@ -10,12 +10,13 @@ impl<Storage> Tensor<Storage> {
     #[inline]
     pub fn tile_slice(mut self, meta: &[SliceDim]) -> Self {
         assert_eq!(self.tiles.len(), meta.len() + 1);
-
+        // 根据具体分块调整变换元信息
         let meta = zip(meta, &*self.tiles)
             .map(|(d, &len)| d.normalize(len))
             .collect::<Vec<_>>();
+        // 更新分块
         self.tiles.0 = meta.iter().map(|d| d.len).chain(once(1)).collect();
-
+        // 变换访存模式
         let n = self.tiles.len();
         let affine = DMatrix::from_fn(n, n, |r, c| {
             if r == n - 1 {
