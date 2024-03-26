@@ -3,9 +3,12 @@
 mod concat;
 mod meta_shape;
 mod restructure;
+mod slice;
 mod split;
 mod tiles;
 mod transpose;
+
+pub use slice::SliceDim;
 
 use meta_shape::MetaShape;
 use nalgebra::{DMatrixView, Scalar};
