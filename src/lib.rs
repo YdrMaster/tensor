@@ -1,19 +1,14 @@
 //! 具有不连续存储结构的张量类型。
 
-mod concat;
-mod meta_shape;
-mod restructure;
-mod slice;
-mod split;
+mod meta;
 mod tiles;
-mod transpose;
+mod transfom;
 
-pub use slice::SliceDim;
-
-use meta_shape::MetaShape;
-use nalgebra::{DMatrixView, Scalar};
+use meta::{MetaShape, MetaTensor};
 use std::iter::once;
 use tiles::Tiles;
+
+pub use transfom::SliceDim;
 
 /// 支持分块、不连续存储结构的张量类型。
 ///
@@ -35,37 +30,6 @@ pub struct Tensor<Storage> {
     storage: MetaTensor<Storage>,
 }
 
-/// 元信息张量。
-///
-/// 储存[张量](crate::Tensor)的元信息，由形状和数据组成。
-/// 元信息张量的形状将广播到[张量](crate::Tensor)的分块。
-#[derive(Clone, Debug)]
-struct MetaTensor<T> {
-    /// 元信息张量的形状，广播到[张量](crate::Tensor)的分块。
-    shape: MetaShape,
-    /// [张量](crate::Tensor)元信息数据。
-    value: Vec<T>,
-}
-
-impl<T> MetaTensor<T> {
-    #[inline]
-    pub fn nrows(&self) -> usize {
-        self.shape.len()
-    }
-
-    #[inline]
-    pub fn ncols(&self) -> usize {
-        self.value.len() / self.shape.len()
-    }
-}
-
-impl<T: Scalar> MetaTensor<T> {
-    #[inline]
-    pub fn as_matrix(&self) -> DMatrixView<T> {
-        DMatrixView::from_slice(&self.value, self.nrows(), self.ncols())
-    }
-}
-
 impl<S> Tensor<S> {
     /// 创建一个标准的张量。
     ///
@@ -75,7 +39,7 @@ impl<S> Tensor<S> {
     pub fn new(shape: &[usize], storage: S) -> Self {
         Self {
             shape_groups: vec![1; shape.len()],
-            tiles: Tiles::new(shape),
+            tiles: Tiles::from_iter(shape.iter().copied().chain(once(1))),
             pattern: MetaTensor {
                 shape: MetaShape::new(shape.len()),
                 value: {

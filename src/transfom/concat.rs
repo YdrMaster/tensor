@@ -13,12 +13,11 @@ impl<Storage> Tensor<Storage> {
             .all(|x| &x.tiles[..axis] == head && &x.tiles[axis + 1..] == tail));
         Self {
             shape_groups: vec![inputs[0].tiles.len() - 1],
-            tiles: Tiles(
+            tiles: Tiles::from_iter(
                 head.iter()
                     .chain(once(&inputs.iter().map(|t| t.tiles[axis]).sum::<usize>()))
                     .chain(tail)
-                    .copied()
-                    .collect(),
+                    .copied(),
             ),
             pattern: MetaTensor {
                 shape: todo!(),

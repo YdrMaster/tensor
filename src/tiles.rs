@@ -1,38 +1,25 @@
-﻿use std::{
-    collections::BTreeMap,
-    iter::once,
-    ops::{Deref, DerefMut},
-};
+﻿use std::{collections::BTreeMap, ops::Deref};
 
 #[derive(Clone, Debug)]
 #[repr(transparent)]
-pub(crate) struct Tiles(pub Vec<usize>);
+pub(crate) struct Tiles(Vec<usize>);
 
 impl Deref for Tiles {
     type Target = [usize];
     #[inline]
     fn deref(&self) -> &Self::Target {
-        self.0.as_slice()
-    }
-}
-
-impl DerefMut for Tiles {
-    #[inline]
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.0.as_mut_slice()
+        &self.0
     }
 }
 
 impl Tiles {
     #[inline]
-    pub fn new(shape: &[usize]) -> Self {
-        Self(shape.iter().map(|&d| d as _).chain(once(1)).collect())
+    pub fn from_iter(iter: impl IntoIterator<Item = usize>) -> Self {
+        Self(iter.into_iter().collect())
     }
 
-    /// 维度切分变换。
-    ///
-    /// 将形状的 `axis` 维度依 `tiles` 指定的方式切分。
-    pub fn split(mut self, axis: usize, tiles: &[usize]) -> Self {
+    #[inline]
+    pub fn tile_split(mut self, axis: usize, tiles: &[usize]) -> Self {
         let len = self.0.len();
         self.0.reserve(tiles.len() - 1);
         #[allow(clippy::uninit_vec)]
@@ -44,9 +31,7 @@ impl Tiles {
         self
     }
 
-    /// 维度切分变换。
-    ///
-    /// 将形状的 `axis` 维度依 `tiles` 指定的方式切分。
+    #[inline]
     pub fn transpose(self, btree: &BTreeMap<usize, usize>) -> Self {
         let mut ans = self.0.clone();
         for (&dst, &src) in btree {
@@ -58,6 +43,6 @@ impl Tiles {
 
 #[test]
 fn test() {
-    let shape = Tiles::new(&[2, 3, 4]);
-    assert_eq!(&*shape.clone().split(2, &[2, 2]), &[2, 3, 2, 2, 1]);
+    let shape = Tiles::from_iter([2, 3, 4, 1]);
+    assert_eq!(&*shape.clone().tile_split(2, &[2, 2]), &[2, 3, 2, 2, 1]);
 }

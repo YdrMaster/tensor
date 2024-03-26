@@ -30,15 +30,11 @@ impl<Storage> Tensor<Storage> {
             .count();
         self.shape_groups[i] += insert;
         // 插入分块
-        self.tiles = self.tiles.split(axis, tiles);
-        // 模式的维度数
-        let nrows = self.pattern.nrows();
-        // 模式的条目数
-        let ncols = self.pattern.ncols();
-        // 更新模式元张量和存储元张量的形状
-        self.pattern.shape = self.pattern.shape.split(axis, insert);
-        self.storage.shape = self.storage.shape.split(axis, insert);
-        // 模式随着块切分
+        self.tiles = self.tiles.tile_split(axis, tiles);
+        // 变换访存模式
+        let pattern_mat = self.pattern.as_matrix();
+        let nrows = pattern_mat.nrows();
+        let ncols = pattern_mat.ncols();
         let pattern = &mut self.pattern.value;
         pattern.reserve(ncols * insert);
         #[allow(clippy::uninit_vec)]
@@ -54,6 +50,9 @@ impl<Storage> Tensor<Storage> {
                 pattern[i] = pattern[i + 1] * self.tiles[i + 1] as isize;
             }
         }
+        // 变换元信息张量
+        self.pattern = self.pattern.tile_split(axis, tiles);
+        self.storage = self.storage.tile_split(axis, tiles);
 
         self
     }

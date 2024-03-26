@@ -51,9 +51,6 @@ impl<Storage> Tensor<Storage> {
     fn _transpose(mut self, btree: BTreeMap<usize, usize>) -> Self {
         // 变换块形状
         self.tiles = self.tiles.transpose(&btree);
-        // 变换元信息张量形状
-        self.pattern.shape = self.pattern.shape.transpose(&btree);
-        self.storage.shape = self.storage.shape.transpose(&btree);
         // 变换访存模式
         let n = self.tiles.len();
         let affine = DMatrix::from_fn(n, n, |r, c| {
@@ -64,6 +61,9 @@ impl<Storage> Tensor<Storage> {
             }
         });
         self.pattern.value = (affine * self.pattern.as_matrix()).data.into();
+        // 变换元信息张量形状
+        self.pattern.shape = self.pattern.shape.transpose(&btree);
+        self.storage.shape = self.storage.shape.transpose(&btree);
 
         self
     }

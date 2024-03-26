@@ -1,4 +1,4 @@
-﻿use crate::Tensor;
+﻿use crate::{tiles::Tiles, Tensor};
 use nalgebra::DMatrix;
 use std::{
     cmp::Ordering,
@@ -15,7 +15,7 @@ impl<Storage> Tensor<Storage> {
             .map(|(d, &len)| d.normalize(len))
             .collect::<Vec<_>>();
         // 更新分块
-        self.tiles.0 = meta.iter().map(|d| d.len).chain(once(1)).collect();
+        self.tiles = Tiles::from_iter(meta.iter().map(|d| d.len).chain(once(1)));
         // 变换访存模式
         let n = self.tiles.len();
         let affine = DMatrix::from_fn(n, n, |r, c| {
