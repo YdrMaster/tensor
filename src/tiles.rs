@@ -1,4 +1,4 @@
-﻿use std::{collections::BTreeMap, ops::Deref};
+﻿use std::ops::Deref;
 
 #[derive(Clone, Debug)]
 #[repr(transparent)]
@@ -29,15 +29,6 @@ impl Tiles {
         self.0.copy_within(axis + 1..len, axis + tiles.len());
         self.0[axis..axis + tiles.len()].copy_from_slice(tiles);
         self
-    }
-
-    #[inline]
-    pub fn transpose(self, btree: &BTreeMap<usize, usize>) -> Self {
-        let mut ans = self.0.clone();
-        for (&dst, &src) in btree {
-            ans[dst] = self.0[src];
-        }
-        Self(ans)
     }
 }
 
