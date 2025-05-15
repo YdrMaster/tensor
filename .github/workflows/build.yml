@@ -51,3 +51,18 @@ jobs:
         with:
           sarif_file: rust-clippy-results.sarif
           wait-for-processing: true
+
+      - name: Install required cargo
+        run: cargo install cargo-tarpaulin
+
+      - name: Generate code coverage
+        run:
+          cargo tarpaulin
+          --all-features
+          --workspace --timeout 120 --out xml
+
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{secrets.CODECOV_TOKEN}}
+          fail_ci_if_error: true
