@@ -4,7 +4,8 @@
 [![Latest version](https://img.shields.io/crates/v/tensor.svg)](https://crates.io/crates/tensor)
 [![Documentation](https://docs.rs/tensor/badge.svg)](https://docs.rs/tensor)
 [![license](https://img.shields.io/github/license/YdrMaster/tensor)](https://mit-license.org/)
-[![codecov](https://codecov.io/github/Simon25772/tensor/branch/ShenghuSu/graph/badge.svg)](https://codecov.io/github/Simon25772/tensor/tree/Shenghu)
+[![codecov](https://codecov.io/gh/YdrMaster/tensor/branch/main/graph/badge.svg)](https://codecov.io/gh/YdrMaster/tensor/)
+
 [![GitHub Issues](https://img.shields.io/github/issues/YdrMaster/tensor)](https://github.com/YdrMaster/tensor/issues)
 [![GitHub Pull Requests](https://img.shields.io/github/issues-pr/YdrMaster/tensor)](https://github.com/YdrMaster/tensor/pulls)
 ![GitHub repo size](https://img.shields.io/github/repo-size/YdrMaster/tensor)
@@ -50,9 +51,3 @@ let mut cloned_tensor = tensor.clone();
 *(cloned_tensor.get_mut()) += 1;
 assert_eq!(*cloned_tensor.get(), item + 1);
 ```
-
-## 应用场景
-
-- **科学计算**：在科学计算领域，经常需要处理大量的多维数据，如矩阵运算、图像处理等。`Tensor<T, N>` 可以方便地管理这些数据，利用其布局管理功能，能高效地进行数据存储和访问，提高计算效率；
-- **机器学习**：在机器学习中，张量是处理数据的核心结构。无论是训练模型时的数据输入，还是模型参数的存储，都可以使用 `Tensor<T, N>` 来管理。通过 `transform` 和 `map` 等方法，满足不同的机器学习任务需求；
-- **数据处理**：在数据处理任务中，可能需要对不同维度的数据进行合并、拆分等操作。`Tensor<T, N>` 的丰富方法可以帮助开发者更轻松地完成这些操作，同时保证数据的一致性和类型安全；

@@ -1,3 +1,4 @@
+#![doc = include_str!("../README.md")]
 #![deny(warnings)]
 
 use digit_layout::DigitLayout;
@@ -180,6 +181,18 @@ impl<T, const N: usize> Tensor<T, N> {
             layout,
             item: f(item),
         }
+    }
+
+    pub fn replace<U>(self, u: U) -> (T, Tensor<U, N>) {
+        let Self { dt, layout, item } = self;
+        (
+            item,
+            Tensor {
+                dt,
+                layout,
+                item: u,
+            },
+        )
     }
 }
 
