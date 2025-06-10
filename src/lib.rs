@@ -43,7 +43,7 @@ impl<const N: usize> Tensor<usize, N> {
     /// 例如，对于将 32 个数字绑定为一组的数据类型，`shape` 为 `[7, 1024]` 时，产生的张量的形状是 `[7, 32]`。
     ///
     /// ```rust
-    /// # use tensor::Tensor;
+    /// # use any_tensor::Tensor;
     /// // 定义一个数据类型，以 32 个 8 位无符号数为一组。
     /// digit_layout::layout!(GROUP u(8); 32);
     ///

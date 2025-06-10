@@ -20,7 +20,7 @@
 ## 使用示例
 
 ```rust
-use tensor::Tensor;
+use any_tensor::Tensor;
 use digit_layout::DigitLayout;
 use ndarray_layout::{ArrayLayout, Endian::BigEndian};
 
