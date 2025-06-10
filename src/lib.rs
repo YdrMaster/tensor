@@ -236,7 +236,7 @@ fn test_basic_functions() {
     let mut t2 = t1.clone();
     *(t2.get_mut()) += 1;
     assert_eq!(*t2.get(), 7 * 1024 + 1);
-    assert_eq!(t1.take(), 7 * 1024);
+    assert_eq!(t1.take(), 7 * 1024)
 }
 
 #[test]
@@ -276,7 +276,7 @@ fn test_extra_functions() {
 
     let non_contig_layout: ArrayLayout<2> = ArrayLayout::new(&[7, 1024], &[1, 7], 0);
     let non_contig_tensor = Tensor::from_raw_parts(GROUP, non_contig_layout, item);
-    assert!(!non_contig_tensor.is_contiguous());
+    assert!(!non_contig_tensor.is_contiguous())
 }
 
 #[test]
@@ -285,7 +285,7 @@ fn test_as_ref() {
     let t1 = Tensor::new(GROUP, [7, 1024]);
 
     let ref_tensor = t1.as_ref();
-    assert_eq!(*ref_tensor.item, 7168);
+    assert_eq!(*ref_tensor.item, 7168)
 }
 
 #[test]
@@ -295,7 +295,7 @@ fn test_as_mut() {
 
     let mut ref_tensor = t1.as_mut();
     (**ref_tensor.get_mut()) += 1;
-    assert_eq!(*t1.get(), 7169);
+    assert_eq!(*t1.get(), 7169)
 }
 
 #[test]
@@ -310,7 +310,7 @@ fn test_transform() {
     let t2 = t1.transform(trans);
     assert_eq!(t2.shape(), [7, 32]);
     assert_eq!(t2.strides(), &[1024, 32]);
-    assert_eq!(t2.offset(), 0);
+    assert_eq!(t2.offset(), 0)
 }
 
 #[test]
@@ -323,7 +323,7 @@ fn test_map() {
     }
 
     let t2 = t1.map(trans);
-    assert_eq!((*t2.get()), (7 * 1024) as isize);
+    assert_eq!((*t2.get()), (7 * 1024) as isize)
 }
 
 #[test]
@@ -343,7 +343,7 @@ fn test_as_deref() {
         item: TestDeref(42),
     };
     let tensor_ref = tensor.as_deref();
-    assert_eq!(*tensor_ref.item, 42);
+    assert_eq!(*tensor_ref.item, 42)
 }
 
 #[test]
@@ -369,11 +369,5 @@ fn test_as_deref_mut() {
     };
     let mut tensor_ref = tensor.as_deref_mut();
     *(*tensor_ref.get_mut()) += 1;
-    assert_eq!(**tensor.get(), 43);
-}
-
-#[test]
-fn test_borrow() {
-    digit_layout::layout!(GROUP u(8); 1);
-    let _tensor = Tensor::new(GROUP, [7, 1024]);
+    assert_eq!(**tensor.get(), 43)
 }

@@ -1,11 +1,15 @@
 [package]
-name = "tensor"
+name = "any-tensor"
+description = "Tensor of any data type"
 version = "0.0.0"
 edition = "2024"
-authors = [
-    "YdrMaster <ydrml@hotmail.com>",
-    "Simon25772 <ssh.king@qq.com>",
-]
+authors = ["YdrMaster <ydrml@hotmail.com>", "Simon25772 <ssh.king@qq.com>"]
+repository = "https://github.com/YdrMaster/tensor"
+documentation = "https://docs.rs/any-tensor"
+license = "MIT"
+readme = "README.md"
+keywords = ["tensor"]
+categories = ["data-structures"]
 
 [dependencies]
 digit-layout = "0.3"
